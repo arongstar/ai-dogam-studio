@@ -6,7 +6,7 @@
    - AI: TensorFlow.js MobileNet 특징 추출 + 최근접 이웃 분류
    - 교사는 '학급 만들기'로 학생용 링크·QR과 차시 열기 코드를 만듭니다.
    ===================================================================== */
-const APP_VERSION = '2.0.1';
+const APP_VERSION = '2.1.0';
 
 /* ---------- 주제 템플릿 ---------- */
 const TEMPLATES = {
@@ -34,6 +34,8 @@ const TEMPLATES = {
     fixPh: '예: 은행나무 사진을 손바닥 위, 땅바닥 위에서도 10장 더 찍어 넣는다',
     trap: ['A 식물은 책상 위에서만, B 식물은 손바닥 위에서만 10장씩 찍어 학습시킵니다.', 'A 식물 잎을 손바닥 위에 올려 보여 주면 AI가 B라고 답하기 쉽습니다.'],
     kioskTitle: '이 잎은 어떤 식물일까?', kioskPrompt: '잎을 카메라에 보여 주세요!', kioskBtn: '잎 보여 주기',
+    kidSafety: '식물은 눈으로만 봐요. 입에 넣거나 먹으면 안 돼요.',
+    safetyPledge: '관찰한 식물은 입에 넣거나 먹지 않아요',
     standards: [
       ['6과11-02', '식물의 각 기관의 구조를 관찰하고, 기능을 알아보는 실험을 수행하여 식물 각 기관의 구조와 기능을 설명할 수 있다.'],
       ['6과11-03', '여러 가지 식물의 특징을 설명하는 자료를 만들어 공유할 수 있다.'],
@@ -67,6 +69,8 @@ const TEMPLATES = {
     fixPh: '예: 구겨진 캔, 라벨이 붙은 병 사진도 10장 더 찍어 넣는다',
     trap: ['A 종류는 흰 책상 위에서만, B 종류는 바닥 위에서만 10장씩 찍어 학습시킵니다.', 'A 종류 물건을 바닥에 놓고 보여 주면 AI가 B라고 답하기 쉽습니다.'],
     kioskTitle: '이건 어디에 버릴까?', kioskPrompt: '버릴 물건을 카메라에 보여 주세요!', kioskBtn: '물건 보여 주기',
+    kidSafety: '깨진 유리나 날카로운 물건은 만지지 말고 어른께 말해요.',
+    safetyPledge: '깨진 유리나 날카로운 물건은 만지지 않아요',
     standards: [
       ['6실02-03', '생활자원의 올바른 사용이 가정과 환경에 도움이 됨을 이해하고 재활용, 재사용 등 환경을 고려한 관리 방법을 실천한다.'],
       ['6실02-10', '자신의 생활공간을 쾌적하고 위생적으로 관리하는 것의 중요성을 알고, 정리정돈과 청소 및 쓰레기 처리의 방법을 익혀 실천한다.'],
@@ -100,6 +104,8 @@ const TEMPLATES = {
     fixPh: '예: 다른 배경과 각도에서 찍은 사진을 10장 더 넣는다',
     trap: ['A 종류는 흰 배경에서만, B 종류는 어두운 배경에서만 10장씩 찍어 학습시킵니다.', 'A 종류를 어두운 배경에서 보여 주면 AI가 B라고 답하기 쉽습니다.'],
     kioskTitle: '이건 무엇일까?', kioskPrompt: '카메라에 보여 주세요!', kioskBtn: '보여 주기',
+    kidSafety: '모르는 것은 함부로 만지지 말고 어른께 물어봐요.',
+    safetyPledge: '살아 있는 생물과 물건을 소중히 다뤄요',
     standards: [
       ['6실05-04', '디지털 데이터와 아날로그 데이터의 특징을 이해하고, 인공지능에 활용할 수 있는 데이터의 유형이나 형태를 탐색한다.'],
       ['6실05-05', '인공지능이 만들어지는 과정을 체험하고, 인공지능이 사회에 미치는 영향을 탐색한다.'],
@@ -151,6 +157,14 @@ const CAUSES = [
   { k: 'few', label: '사진이 부족해요' }, { k: 'similar', label: '비슷하게 생겼어요' }, { k: 'other', label: '기타' },
 ];
 const RESP = ['AI', '만든 우리', '선생님', '사용한 사람'];
+// 학급 AI 활용 5대 약속 (학생용 수칙)
+const PLEDGES = t => [
+  ['사진 속 개인정보 지키기', '사람 얼굴, 이름표, 학교 이름은 사진에 찍지 않고, 모둠원 이름은 번호나 별명으로 적어요. 사진과 기록은 우리 기기 안에만 저장돼요.'],
+  ['AI 판단 맹신 금지', 'AI는 우리가 보여 준 사진만 배워서 틀릴 수 있어요. 확신도가 높아도 특징표와 실물로 직접 확인해요.'],
+  ['내 판단 먼저 적기', 'AI의 답을 보기 전에 내가 먼저 판단하고, 특징표의 말로 근거를 적어요.'],
+  ['AI는 우리가 가르치고 책임지는 탐구 파트너', `도감 설명은 우리 말로 직접 쓰고, ${t.audience}에게 보여 줄 때는 옆에서 틀린 답을 바로잡아요.`],
+  ['고운 말과 안전한 사용', `근거와 피드백은 고운 말로 쓰고, 친구의 의견을 존중해요. ${t.safetyPledge}.`],
+];
 const REFLECT_QS = [
   { k: 'q1', q: 'AI는 어떻게 배웠나요?' },
   { k: 'q2', q: '우리가 특징표로 구별한 방법과 AI가 배운 방법은 무엇이 달랐나요?' },
@@ -248,11 +262,13 @@ const ui = {
 };
 let saveTimer = null;
 
-function newProject({ cls = '', group = '', school = '', topic = { tpl: 'plant' }, classId = null, classKey = null, pinHash = null } = {}) {
+// 가드레일 설정: blindFirst = 4차시 '내 판단 먼저', review = 동생 모드 전 교사 검토
+const DEFAULT_SETTINGS = { blindFirst: false, review: true };
+function newProject({ cls = '', group = '', school = '', topic = { tpl: 'plant' }, classId = null, classKey = null, pinHash = null, settings = DEFAULT_SETTINGS } = {}) {
   return {
     id: uid(), app: 'ai-dogam-studio', schema: 2,
     school, cls, group, members: [], topic: { ...topic },
-    classId, classKey, pinHash,
+    classId, classKey, pinHash, settings: { ...DEFAULT_SETTINGS, ...settings }, pledgeAt: null,
     createdAt: Date.now(), updatedAt: Date.now(), lastExportAt: null,
     unlocked: 1, lastStep: 1,
     rules: {}, observations: [], lostInfo: '',
@@ -261,7 +277,7 @@ function newProject({ cls = '', group = '', school = '', topic = { tpl: 'plant' 
     tests: [], trustNote: '',
     trapNote: '', fixPlan: '', biasSociety: '', versionEval: [],
     copyrightNote: '', cards: {},
-    kid: { threshold: 0.7, reason: '', resp: [], respNote: '', feedback: [] }, kidObservation: '',
+    kid: { threshold: 0.7, reason: '', resp: [], respNote: '', feedback: [], approval: null }, kidObservation: '',
     predictionCheck: '', reflection: {},
   };
 }
@@ -297,6 +313,11 @@ function normalize(p) {
   p.kid.threshold = toNum(p.kid.threshold, 0.3, 0.95, 0.7);
   p.kid.resp = arr(p.kid.resp).filter(r => RESP.includes(r));
   p.kid.feedback = arr(p.kid.feedback).map(f => ({ at: toNum(f.at, 0, 9e15, 0), plantId: safeId(f.plantId) ? f.plantId : null, conf: f.conf == null ? null : toNum(f.conf, 0, 1, 0), shown: !!f.shown, ok: f.ok === true ? true : f.ok === false ? false : null }));
+  const ap = p.kid.approval;
+  p.kid.approval = ap && typeof ap === 'object' && typeof ap.sig === 'string' ? { at: toNum(ap.at, 0, 9e15, 0), sig: ap.sig.slice(0, 20) } : null;
+  const st = p.settings && typeof p.settings === 'object' ? p.settings : {};
+  p.settings = { blindFirst: st.blindFirst === true, review: st.review !== false };
+  p.pledgeAt = p.pledgeAt ? toNum(p.pledgeAt, 0, 9e15, null) : null;
   return p;
 }
 function save() {
@@ -579,7 +600,7 @@ async function openCamera({ title = '사진 찍기', multi = false, kid = false,
   const m = showModal(`<div class="cam ${kid ? 'kid' : ''}">
       <div class="cam-head"><h3>${esc(title)}</h3><button class="icon-btn" data-cam="close" aria-label="닫기">✕</button></div>
       <div class="cam-view"><video playsinline muted autoplay></video><div class="cam-msg">카메라를 켜는 중…</div><div class="cam-flash"></div></div>
-      <p class="cam-tip">${kid ? '화면 가운데에 크게 보이게 해 주세요' : '네모 안에 꽉 차게 찍어요. 보이는 그대로 저장돼요.'}</p>
+      <p class="cam-tip">${kid ? '화면 가운데에 크게 보이게 해 주세요' : '네모 안에 꽉 차게 찍어요. <b>사람 얼굴이나 이름표는 찍지 않아요.</b> 사진은 이 기기에만 저장돼요.'}</p>
       <div class="cam-bar">
         <label class="btn ghost file-btn">🖼️ 사진 고르기<input type="file" accept="image/*" ${multi ? 'multiple' : ''} hidden data-cam="file"></label>
         <button class="shutter" data-cam="shot" disabled aria-label="찍기"></button>
@@ -818,7 +839,7 @@ async function renderJoin() {
       ${mine.length ? `<h2>이어서 하기</h2><div class="proj-list">${mine.map(p => `<button class="proj-item" data-act="openProject" data-id="${p.id}">
         <b>${esc(p.group)}</b><span>${p.unlocked}차시까지 열림 · ${fmtDate(p.updatedAt)} 저장</span></button>`).join('')}</div><h3>새로 시작하기</h3>` : '<h2>우리 모둠을 골라요</h2>'}
       <div class="group-pick">${Array.from({ length: c.g }, (_, i) => `<button class="gbtn" data-act="joinGroup" data-n="${i + 1}">${i + 1}모둠</button>`).join('')}</div>
-      <div class="privacy small"><b>약속</b> ${t.rules.map(esc).join(' · ')}<br>사진과 기록은 이 기기에만 저장돼요.</div>
+      <div class="privacy small"><b>학급 AI 활용 5대 약속</b><ol class="pledge-mini">${PLEDGES(t).map(([h]) => `<li>${esc(h)}</li>`).join('')}</ol>사진과 기록은 이 기기에만 저장되고, 회원가입 없이 참여해요.</div>
       <button class="btn ghost full" data-act="leaveJoin">처음 화면으로</button>
     </section></div>`;
 }
@@ -831,6 +852,7 @@ const RENDER = {
   observe() {
     const t = T(), obs = P.observations;
     return `${questionBanner()}
+    ${pledgeCard()}
     <section class="card"><h2>관찰 약속</h2>
       <div class="checks">${t.rules.map((r, i) => `<label class="check"><input type="checkbox" data-bind="p|rules.r${i + 1}" ${P.rules?.['r' + (i + 1)] ? 'checked' : ''}> ${esc(r)}</label>`).join('')}</div></section>
     <section class="card">
@@ -913,6 +935,7 @@ const RENDER = {
       <div class="stat"><div class="num">${n}</div><div>시험한 수</div></div>
       <div class="stat"><div class="num">${ok}</div><div>AI가 맞힌 수</div></div>
       <div class="stat hl"><div class="num">${n ? pct(ok / n) : '-'}</div><div>정확도</div></div></div>
+      ${n ? '<p class="guard-note">💡 이 정확도는 우리가 시험한 사진에서만의 결과예요. 다른 계절·다른 장소에서도 같을까요?</p>' : ''}
       ${n ? confusion() : ''}</section>
     <section class="card"><h2>판단 기록</h2>${n ? testTable() : empty('아직 시험 기록이 없어요.')}</section>
     <section class="card think"><h2>💭 토의</h2><p>10번 중 8번 맞힌 AI를 ${esc(t.audience)}에게 주어도 될까요? 정확도가 높으면 믿어도 될까요?</p>
@@ -970,13 +993,17 @@ const RENDER = {
       <p>AI의 확신도가 기준보다 낮으면 이름 대신 <b>"잘 모르겠어요. 선생님께 물어봐요"</b>를 보여 줘요.</p>
       <div class="threshold"><span class="muted small">30%</span><input type="range" min="30" max="95" step="5" value="${Math.round(P.kid.threshold * 100)}" id="th-range" aria-label="확신도 기준"><span class="muted small">95%</span><div class="th-val" id="th-val">${pct(P.kid.threshold)}</div></div>
       <div id="kid-sim">${kidSimView()}</div>
+      <p class="guard-note" id="th-warn" ${P.kid.threshold < 0.6 ? '' : 'hidden'}>⚠ 기준을 낮추면 ${esc(t.audience)}에게 틀린 답을 더 자주 보여 주게 돼요. 정말 괜찮을까요?</p>
       <p class="muted small">💡 기준을 너무 높이면? 너무 낮추면? 바꿔 보면서 이야기해 보세요.</p>
       <label class="field">우리 모둠이 이 기준을 고른 이유 ${ta('p|kid.reason', P.kid.reason, '예: 틀린 답을 알려 주는 것보다 모른다고 하는 게 더 안전해서')}</label></section>
+    ${P.settings.review ? `<section class="card review ${isApproved() ? 'ok' : ''}"><div class="row-between wrap"><div><h2>🧑‍🏫 선생님 검토</h2>
+      <p>${isApproved() ? `✔ ${fmtDate(P.kid.approval.at)}에 선생님이 도감 카드를 확인했어요.` : P.kid.approval ? '⚠ 선생님이 확인한 뒤 도감 카드가 바뀌었어요. 다시 확인을 받아야 해요.' : `${esc(t.audience)}에게 보여 주기 전에 선생님이 도감 카드의 이름과 설명을 확인해요.`}</p></div>
+      ${isApproved() ? '' : '<button class="btn" data-act="review">선생님 확인 받기</button>'}</div></section>` : ''}
     <section class="card kid-launch"><div class="row-between wrap"><div><h2>🧒 ${esc(t.modeName)}</h2>
       <p>도감 카드 ${done}/${P.plants.length} 완성 · AI ${versionLabel(cv)} · 확신도 기준 ${pct(P.kid.threshold)}</p>
-      ${done < P.plants.length ? '<p class="warn-text">아직 완성하지 않은 도감 카드가 있어요.</p>' : ''}
+      ${readinessIssues().map(x => `<p class="warn-text">⚠ ${esc(x)}</p>`).join('')}
       ${needsRetrain() ? '<p class="warn-text">학습 후 바뀐 사진이 있어요. 다시 학습하면 최신 AI가 쓰여요.</p>' : ''}</div>
-      <button class="btn big primary" data-act="kidStart">${esc(t.modeName)} 시작 ▶</button></div></section>
+      <button class="btn big primary" data-act="kidStart" ${isApproved() ? '' : 'disabled title="선생님 검토가 필요해요"'}>${esc(t.modeName)} 시작 ▶</button></div></section>
     <section class="card"><h2>피드백</h2>${feedbackSummary()}
       <label class="field">사용한 사람이 헷갈려한 점 ${ta('p|kidObservation', P.kidObservation, '시연하면서 본 것을 적어요')}</label></section>`;
   },
@@ -1006,6 +1033,30 @@ const RENDER = {
 };
 
 /* ---------- 차시 화면에서 쓰는 조각들 ---------- */
+function pledgeCard() {
+  const t = T(), done = !!P.pledgeAt;
+  return `<section class="card pledge ${done ? 'done' : ''}"><h2>🤝 학급 AI 활용 5대 약속</h2>
+    <ol class="pledge-list">${PLEDGES(t).map(([h, d], i) => `<li><b>[약속 ${i + 1}] ${esc(h)}</b><span>${esc(d)}</span></li>`).join('')}</ol>
+    ${done ? `<p class="agree">✔ ${fmtDate(P.pledgeAt)}에 약속했어요.</p>` : '<button class="btn primary" data-act="pledge">약속을 읽었고, 지킬게요</button>'}</section>`;
+}
+// AI가 처음 학습을 마친 뒤 보여 주는 안내 (화면별 가드레일 문구)
+const LEARNED_NOTE = '<p class="guard-note">💡 AI는 우리가 보여 준 사진만 배웠어요. 보여 주지 않은 모습은 모를 수 있어요.</p>';
+// 도감 카드 내용이 바뀌었는지 확인하는 서명 (교사 검토 승인용)
+function cardsSig() {
+  const parts = P.plants.map(p => { const c = P.cards[p.id] || {}; return [p.id, p.name, c.feature, c.role, c.place, c.message, c.photo, c.srcType, c.ref].join('|'); });
+  return fnv(parts.join('#')).toString(36);
+}
+const isApproved = () => !P.settings.review || (P.kid.approval && P.kid.approval.sig === cardsSig());
+// 동생 모드 전에 확인할 데이터 부족 항목
+function readinessIssues() {
+  const cv = currentVersion(), out = [];
+  if (!cv) return ['아직 학습한 AI가 없어요.'];
+  P.plants.forEach(p => { const n = cv.counts?.[p.id] || 0; if (n < 10) out.push(`${p.name || '이름 없음'} 학습 사진이 ${n}장이에요 (10장 이상 권장).`); });
+  if (P.tests.length < 5) out.push(`4차시 시험이 ${P.tests.length}개예요 (5개 이상 권장).`);
+  const notDone = P.plants.filter(p => !cardDone(p.id)).length;
+  if (notDone) out.push(`완성하지 않은 도감 카드가 ${notDone}장 있어요.`);
+  return out;
+}
 // 모둠원 + 모둠원 등록 전에 '모둠' 이름으로 쓴 성찰까지 함께 보여 줍니다
 function reflectMembers() {
   const list = [...P.members];
@@ -1059,7 +1110,7 @@ function trainBox(cv, again = false) {
       <p>${cv ? `현재 AI: <b>${versionLabel(cv)}</b> · 사진 ${cv.sampleIds.length}장 학습 · ${fmtDate(cv.at)}` : '아직 학습한 AI가 없어요.'}</p>
       ${cv && needsRetrain() ? '<p class="warn-text">새로 바뀐 사진이 있어요. 다시 학습해야 AI가 배워요.</p>' : ''}</div>
     <button class="btn big primary" data-act="train">🧠 AI 학습시키기 (v${mainVersions().length + 1})</button></div>
-    ${mainVersions().length ? `<p class="muted small">학습 기록: ${mainVersions().map(v => `${versionLabel(v)}(${v.sampleIds.length}장)`).join(' → ')}</p>` : ''}</section>`;
+    ${mainVersions().length ? `<p class="muted small">학습 기록: ${mainVersions().map(v => `${versionLabel(v)}(${v.sampleIds.length}장)`).join(' → ')}</p>${LEARNED_NOTE}` : ''}</section>`;
 }
 function versionSelect() {
   const vs = [...P.versions].reverse();
@@ -1071,7 +1122,36 @@ function memberPicker() {
   if (!P.members.length) return `<p class="muted small">기록하는 사람을 남기려면 <button class="link" data-act="groupInfo">모둠원을 등록</button>하세요.</p>`;
   return `<div class="row wrap member-pick">기록하는 사람 ${P.members.map(m => `<button class="chip ${ui.member === m ? 'on' : ''}" data-act="pickMember" data-k="${esc(m)}">${esc(m)}</button>`).join('')}</div>`;
 }
+const agreeMsg = same => same
+  ? '<p class="agree">✔ AI와 같은 답이에요. 그런데 AI가 맞힌 이유는 무엇일까요?</p>'
+  : '<p class="disagree">✘ AI와 내 판단이 달라요. 누구의 판단이 맞는지 특징표로 확인해 봐요.</p>';
+function aiResultHTML(d) {
+  const r = d.result;
+  if (d.error) return '<p class="warn-text">AI를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 찍어 주세요.</p>';
+  if (!r) return '<p class="thinking">🤖 AI가 생각하는 중…</p>';
+  return `<p class="ai-answer" style="--pc:${plantColor(r.plantId)}">🤖 <b>${esc(plantName(r.plantId))}</b> <span>확신도 ${pct(r.conf)}</span></p>${famNote(r)}${resultBars(r.dist)}`;
+}
+// '내 판단 먼저' 모드: 내 판단과 근거를 먼저 쓰고 나서 AI의 답을 엽니다(기준점 효과 막기)
+function testDraftBlind(d) {
+  const t = T(), r = d.result;
+  const reasonOk = (d.reason || '').trim().length >= 5;
+  return `<div class="test-flow">
+    <div class="test-img"><img src="${d.img}" alt="시험 사진"><p class="guard-note">🙈 내 판단 먼저 모드: AI의 답은 내 근거를 쓴 다음에 열려요.</p></div>
+    <div class="test-steps">
+      <div class="tstep"><div class="tnum">1</div><div class="tbody"><h3>내 판단: 이것은 무엇인가요?</h3>
+        <div class="choice">${P.plants.map(p => `<button class="chip ${d.actual === p.id ? 'on' : ''}" style="--pc:${p.color}" data-act="testActual" data-id="${p.id}" ${d.revealed ? 'disabled' : ''}>${esc(p.name || '이름 없음')}</button>`).join('')}</div></div></div>
+      <div class="tstep ${d.actual ? '' : 'dim'}"><div class="tnum">2</div><div class="tbody"><h3>내 근거</h3>
+        <p class="muted small">특징표의 말(${t.features.slice(0, 3).map(f => esc(f.label)).join(', ')}…)을 써서 설명해요.</p>
+        <textarea id="test-reason" rows="2" ${d.actual && !d.revealed ? '' : 'disabled'} placeholder="${esc(t.reasonPh)}">${esc(d.reason || '')}</textarea></div></div>
+      <div class="tstep ${d.revealed ? '' : 'dim'}"><div class="tnum">3</div><div class="tbody"><h3>AI 판단과 비교하기</h3>
+        ${d.revealed ? aiResultHTML(d) + (r ? agreeMsg(d.actual === r.plantId) : '')
+          : `<button class="btn" data-act="testReveal" id="test-reveal" ${d.actual && reasonOk && r ? '' : 'disabled'}>🔓 AI 답 열어 보기</button>${r ? '' : ' <span class="muted small">AI가 생각하는 중…</span>'}`}</div></div>
+      <div class="row end"><button class="btn ghost" data-act="testCancel">취소</button>
+        <button class="btn primary" data-act="testSave" id="test-save" ${d.revealed ? '' : 'disabled'}>기록하고 다음 →</button></div>
+    </div></div>`;
+}
 function testDraftView(d) {
+  if (P.settings.blindFirst) return testDraftBlind(d);
   const t = T(), r = d.result;
   const reasonOk = (d.reason || '').trim().length >= 5;
   return `<div class="test-flow">
@@ -1083,7 +1163,7 @@ function testDraftView(d) {
           : '<p class="thinking">🤖 AI가 생각하는 중…</p>'}</div></div>
       <div class="tstep ${r ? '' : 'dim'}"><div class="tnum">2</div><div class="tbody"><h3>내 판단: 실제로는 무엇인가요?</h3>
         <div class="choice">${P.plants.map(p => `<button class="chip ${d.actual === p.id ? 'on' : ''}" style="--pc:${p.color}" data-act="testActual" data-id="${p.id}" ${r ? '' : 'disabled'}>${esc(p.name || '이름 없음')}</button>`).join('')}</div>
-        ${d.actual && r ? `<p class="${d.actual === r.plantId ? 'agree' : 'disagree'}">${d.actual === r.plantId ? '✔ AI와 내 판단이 같아요' : '✘ AI와 내 판단이 달라요'}</p>` : ''}</div></div>
+        ${d.actual && r ? agreeMsg(d.actual === r.plantId) : ''}</div></div>
       <div class="tstep ${d.actual ? '' : 'dim'}"><div class="tnum">3</div><div class="tbody"><h3>내 근거</h3>
         <p class="muted small">특징표의 말(${t.features.slice(0, 3).map(f => esc(f.label)).join(', ')}…)을 써서 설명해요.</p>
         <textarea id="test-reason" rows="2" ${d.actual ? '' : 'disabled'} placeholder="${esc(t.reasonPh)}">${esc(d.reason || '')}</textarea></div></div>
@@ -1199,6 +1279,7 @@ function feedbackSummary() {
       <div class="stat good"><div class="num">${yes}</div><div>맞아요 😊</div></div>
       <div class="stat bad"><div class="num">${no}</div><div>틀려요 🤔</div></div>
       <div class="stat"><div class="num">${unk}</div><div>잘 모르겠어요</div></div></div>
+    ${no >= 3 ? `<p class="guard-note">⚠ 사용한 사람들이 틀렸다고 한 답이 ${no}번 있어요. 어떤 사진을 더 가르쳐야 할까요?</p>` : ''}
     ${per.length ? `<div class="table-wrap"><table class="ftable"><thead><tr><th>AI가 알려 준 답</th><th>맞아요</th><th>틀려요</th></tr></thead>
       <tbody>${per.map(r => `<tr><td>${esc(r.p.name)}</td><td>${r.yes}</td><td>${r.no}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
 }
@@ -1221,19 +1302,23 @@ function kioskRender() {
     k.innerHTML = `${top}<div class="k-home"><div class="k-title">${esc(t.kioskTitle)}</div>
       <p>${esc(t.kioskPrompt)}</p>
       <button class="k-shot" data-act="kioskShot"><span class="k-cam">📷</span><span>${esc(t.kioskBtn)}</span></button>
-      <p class="k-credit">${esc(P.cls)} ${esc(P.group)} 친구들이 만들었어요</p></div>`;
+      <p class="k-safety">⚠️ ${esc(t.kidSafety)}</p>
+      <p class="k-credit">${esc(P.cls)} ${esc(P.group)} 친구들이 만들었어요 · AI도 틀릴 수 있어요</p></div>`;
   } else if (st.stage === 'thinking') {
     k.innerHTML = `${top}<div class="k-home"><div class="k-think">🤖</div><div class="k-title">생각하는 중…</div></div>`;
   } else if (st.stage === 'result') {
     const r = st.result, p = r && plantById(r.plantId);
     if (st.shown && p) {
       k.innerHTML = `${top}<div class="k-result">${cardView(p, false, true)}
+        <p class="k-safety">⚠️ ${esc(t.kidSafety)}</p>
+        <p class="k-caution">AI도 틀릴 수 있어요. 이상하면 [틀려요]를 눌러 주세요.</p>
         <div class="k-q">맞았나요?</div>
         <div class="k-fb"><button class="k-btn yes" data-act="kidFb" data-ok="1">맞아요 😊</button><button class="k-btn no" data-act="kidFb" data-ok="0">틀려요 🤔</button></div>
         <button class="btn ghost" data-act="kidSpeak">🔊 다시 듣기</button></div>`;
     } else {
       k.innerHTML = `${top}<div class="k-home"><div class="k-think">🤔</div><div class="k-title">잘 모르겠어요</div>
         <p>선생님이나 만든 친구들에게 물어봐요!</p>
+        <p class="k-safety">⚠️ ${esc(t.kidSafety)}</p>
         <button class="k-btn yes" data-act="kidFb" data-ok="u">다시 해 볼래요</button></div>`;
     }
   }
@@ -1289,7 +1374,8 @@ function printPortfolio() {
   </div>`);
 }
 function joinLink(c) {
-  const payload = { v: 1, id: c.id, k: c.key, s: c.school, c: c.cls, t: c.topic, g: c.groups, h: c.pinHash };
+  const o = { ...DEFAULT_SETTINGS, ...(c.opts || {}) };
+  const payload = { v: 1, id: c.id, k: c.key, s: c.school, c: c.cls, t: c.topic, g: c.groups, h: c.pinHash, o: { b: o.blindFirst ? 1 : 0, r: o.review ? 1 : 0 } };
   return `${location.origin}${location.pathname}#join=${b64e(payload)}`;
 }
 function qrSVG(text, cell = 5) {
@@ -1441,6 +1527,9 @@ async function teacherModal() {
     ${inProject ? `<div class="field"><b>열린 차시</b> <span class="muted small">(${esc(P.cls)} ${esc(P.group)})</span>
       <div class="unlock">${STEPS.map(s => `<button class="chip ${s.n <= P.unlocked ? 'on' : ''}" data-unlock="${s.n}">${s.n}차시</button>`).join('')}</div>
       <p class="muted small">이 기기에서 누른 차시까지 열려요. 학급 링크로 만든 프로젝트는 학생이 열기 코드로 직접 열 수도 있어요.</p></div>
+      <div class="field"><b>가드레일 설정</b>
+        <label class="check"><input type="checkbox" data-set="blindFirst" ${P.settings.blindFirst ? 'checked' : ''}> 4차시 '내 판단 먼저' 모드 (과의존 방지)</label>
+        <label class="check"><input type="checkbox" data-set="review" ${P.settings.review ? 'checked' : ''}> 동생 모드 전 교사 검토 (책임성)</label></div>
       <div class="field"><b>이 프로젝트</b><div class="row wrap">
         <button class="btn sm" data-tm="csv">판단 기록 CSV</button><button class="btn sm" data-tm="json">파일로 저장</button>
         <button class="btn sm danger" data-tm="delete">프로젝트 삭제</button></div>
@@ -1452,6 +1541,14 @@ async function teacherModal() {
       <div class="row"><input id="tm-pin" type="password" inputmode="numeric" placeholder="새 교사용 비밀번호 (4자리 이상)"><button class="btn sm" data-tm="pin">바꾸기</button></div>
       ${P?.pinHash ? '<p class="muted small">이 프로젝트는 학급을 만든 선생님의 비밀번호를 써요. 여기서 바꾸는 비밀번호는 이 기기의 다른 프로젝트에 쓰여요.</p>' : ''}</div>
     <div class="row end"><button class="btn primary" data-tm="close">닫기</button></div>`, { onClose: () => { if (P) render(); }, cls: 'narrow' });
+  m.addEventListener('change', e => {
+    const s = e.target.closest('[data-set]');
+    if (!s) return;
+    P.settings[s.dataset.set] = s.checked;
+    ui.testDraft = null;
+    save();
+    toast(s.checked ? '설정을 켰어요.' : '설정을 껐어요.');
+  });
   m.addEventListener('click', async e => {
     const u = e.target.closest('[data-unlock]');
     if (u) {
@@ -1524,6 +1621,9 @@ async function classCreateModal() {
     <div class="two"><label class="field">학교 (선택) <input id="cc-school" placeholder="예: 새싹초"></label><label class="field">반 <input id="cc-cls" placeholder="예: 6-1"></label></div>
     ${topicPickerHTML('cc')}
     <label class="field">모둠 수 <input id="cc-groups" type="number" min="1" max="12" value="6"></label>
+    <div class="field"><b>가드레일 설정</b>
+      <label class="check"><input type="checkbox" id="cc-blind"> 4차시 '내 판단 먼저' 모드 — 학생이 판단과 근거를 먼저 써야 AI 답이 열려요 (과의존 방지)</label>
+      <label class="check"><input type="checkbox" id="cc-review" checked> 동생 모드 전 교사 검토 — 선생님이 도감 카드를 확인해야 시작할 수 있어요 (책임성)</label></div>
     <div class="row end"><button class="btn ghost" data-x="no">취소</button><button class="btn primary" data-x="ok">만들기</button></div>`, { wide: true });
   m.addEventListener('click', async e => {
     const x = e.target.closest('[data-x]');
@@ -1539,6 +1639,7 @@ async function classCreateModal() {
     const c = {
       id: uid(), key, school: clean(m.querySelector('#cc-school').value), cls, topic,
       groups: Math.max(1, Math.min(12, +m.querySelector('#cc-groups').value || 6)), pinHash: await devicePinHash(), createdAt: Date.now(),
+      opts: { blindFirst: m.querySelector('#cc-blind').checked, review: m.querySelector('#cc-review').checked },
     };
     const classes = (await DB.getSetting('classes')) || [];
     classes.unshift(c);
@@ -1564,7 +1665,7 @@ async function classModal(id) {
         <div class="codes ${'hidden-codes'}" id="codes">${STEPS.map(s => `<div class="code"><span>${s.n}차시</span><b>${openCode(c.key, s.n)}</b></div>`).join('')}</div>
         <button class="btn sm ghost" data-x="toggle">👁 코드 보기</button></div>
     </div>
-    <details class="mini-details"><summary>학급 정보</summary><p class="small">주제: ${esc(t.name)} · 구별할 것: ${esc(t.item)} · 찍을 것: ${esc(t.part)} · 사용할 사람: ${esc(t.audience)} · 모둠 ${c.groups}개<br>핵심 질문: ${esc(t.question)}</p>
+    <details class="mini-details"><summary>학급 정보</summary><p class="small">주제: ${esc(t.name)} · 구별할 것: ${esc(t.item)} · 찍을 것: ${esc(t.part)} · 사용할 사람: ${esc(t.audience)} · 모둠 ${c.groups}개<br>핵심 질문: ${esc(t.question)}<br>가드레일: 내 판단 먼저 ${c.opts?.blindFirst ? '켬' : '끔'} · 교사 검토 ${c.opts?.review === false ? '끔' : '켬'}</p>
       <button class="btn sm danger" data-x="delete">이 학급 지우기</button> <span class="muted small">(학생 기기의 기록은 지워지지 않아요)</span></details>`, { wide: true });
   m.addEventListener('click', async e => {
     const x = e.target.closest('[data-x]');
@@ -1699,7 +1800,7 @@ const ACT = {
     const c = ui.join, n = +el.dataset.n;
     const exists = (await DB.allProjects()).find(p => p.classId === c.id && p.group === `${n}모둠`);
     if (exists && confirm(`${n}모둠 프로젝트가 이미 이 기기에 있어요. 이어서 할까요?\n[취소]를 누르면 새로 만들어요.`)) { ui.join = null; clearHash(); openProject(exists); return; }
-    const p = newProject({ cls: c.c, school: c.s || '', group: `${n}모둠`, topic: c.t || { tpl: 'plant' }, classId: c.id, classKey: c.k, pinHash: c.h || null });
+    const p = newProject({ cls: c.c, school: c.s || '', group: `${n}모둠`, topic: c.t || { tpl: 'plant' }, classId: c.id, classKey: c.k, pinHash: c.h || null, settings: c.o });
     await DB.putProject(p);
     ui.join = null;
     clearHash();
@@ -1801,13 +1902,21 @@ const ACT = {
       if (ui.testDraft === d) render();
     } });
   },
-  testActual(el) { if (ui.testDraft) { ui.testDraft.actual = el.dataset.id; render(); setTimeout(() => $('#test-reason')?.focus(), 30); } },
+  testActual(el) { if (ui.testDraft && !ui.testDraft.revealed) { ui.testDraft.actual = el.dataset.id; render(); setTimeout(() => $('#test-reason')?.focus(), 30); } },
   testCancel() { if (ui.testDraft) AI.forget(ui.testDraft.id); ui.testDraft = null; render(); },
+  testReveal() {
+    const d = ui.testDraft;
+    if (!d || !d.result || !d.actual || (d.reason || '').trim().length < 5) return;
+    d.revealed = true; // 이후에는 내 판단·근거를 바꿀 수 없음 (1차 생각 보존)
+    render();
+  },
   testSave() {
     const d = ui.testDraft;
     if (!d || !d.result || !d.actual || (d.reason || '').trim().length < 5) return;
+    const blind = P.settings.blindFirst;
+    if (blind && !d.revealed) return;
     P.tests.push({ id: d.id, img: d.img, at: Date.now(), version: d.version, aiPlantId: d.result.plantId, aiConf: d.result.conf,
-      actualPlantId: d.actual, reason: d.reason.trim(), by: ui.member, causes: [] });
+      actualPlantId: d.actual, reason: d.reason.trim(), by: ui.member, causes: [], blind });
     ui.testDraft = null; ui.kidSim = null; save(); render();
     toast('기록했어요! 다음 것을 찍어 보세요.');
   },
@@ -1852,7 +1961,46 @@ const ACT = {
     P.kid.resp = r.includes(k) ? r.filter(x => x !== k) : [...r, k];
     save(); el.classList.toggle('on');
   },
-  kidStart() { kioskOpen(); },
+  async review() {
+    // 교사가 도감 카드를 확인하고 승인합니다. 카드가 바뀌면 다시 승인해야 합니다.
+    const t = T();
+    const m = showModal(`<h3>🧑‍🏫 선생님 검토</h3>
+      <p class="muted small">${esc(t.audience)}에게 보여 줄 이름과 설명이 정확하고 안전한지 확인해 주세요.</p>
+      <div class="review-cards">${P.plants.map(p => cardView(p)).join('')}</div>
+      <ul class="small"><li>이름과 설명이 사실과 맞나요?</li><li>${esc(t.audience)}에게 위험한 행동(먹기, 만지기)을 권하지 않나요?</li><li>사진에 얼굴·개인정보가 없나요?</li></ul>
+      <div class="row end"><button class="btn ghost" data-x="no">나중에</button><button class="btn primary" data-x="ok">확인했어요 (비밀번호)</button></div>`, { wide: true });
+    m.addEventListener('click', async e => {
+      const x = e.target.closest('[data-x]');
+      if (!x) return;
+      if (x.dataset.x === 'no') { closeModal(); return; }
+      const h = await activePinHash();
+      let ok;
+      if (h) ok = await askPin('도감 카드 승인', h);
+      else ok = confirm('교사용 비밀번호가 없어 확인만으로 승인합니다. 선생님이 직접 확인하셨나요?');
+      if (!ok) return;
+      P.kid.approval = { at: Date.now(), sig: cardsSig() };
+      save();
+      closeModal();
+      render();
+      toast('선생님 검토를 마쳤어요.');
+    });
+  },
+  kidStart() {
+    if (!isApproved()) { toast('먼저 선생님 검토를 받아 주세요.'); ACT.review(); return; }
+    const t = T(), issues = readinessIssues();
+    const m = showModal(`<h3>🧒 ${esc(t.modeName)} 시작 전에</h3>
+      ${issues.length ? `<div class="warn">⚠ 아직 사진이나 시험이 부족해요. 이대로 ${esc(t.audience)}에게 보여 줄까요?<br>${issues.map(esc).join('<br>')}</div>` : ''}
+      <p>이 도감은 우리가 만들었어요. ${esc(josa(t.audience, '이/가'))} 틀린 답을 보면 옆에서 바로잡아 주세요.</p>
+      <p class="muted small">"AI도 틀릴 수 있어요"와 안전 약속("${esc(t.kidSafety)}")도 함께 알려 주세요.</p>
+      <div class="row end"><button class="btn ghost" data-x="no">취소</button><button class="btn primary" data-x="ok">${issues.length ? '그래도 시작하기' : '시작하기'}</button></div>`, { cls: 'narrow' });
+    m.addEventListener('click', e => {
+      const x = e.target.closest('[data-x]');
+      if (!x) return;
+      closeModal();
+      if (x.dataset.x === 'ok') kioskOpen();
+    });
+  },
+  pledge() { P.pledgeAt = Date.now(); save(); render(); toast('5대 약속을 했어요!'); },
   kioskShot() {
     const cv = currentVersion();
     openCamera({ title: T().kioskPrompt, kid: true, onCapture: async img => {
@@ -1863,7 +2011,7 @@ const ACT = {
         const shown = r.conf >= P.kid.threshold && !!plantById(r.plantId);
         ui.kiosk = { stage: 'result', result: r, shown };
         kioskRender();
-        if (shown) speak(cardSpeech(r.plantId) || plantName(r.plantId));
+        if (shown) speak(`${cardSpeech(r.plantId) || plantName(r.plantId)}. ${T().kidSafety}`);
         else speak('잘 모르겠어요. 선생님이나 만든 친구들에게 물어봐요.');
       } catch {
         ui.kiosk = { stage: 'home' }; kioskRender(); toast('AI를 불러오지 못했어요.');
@@ -1925,7 +2073,8 @@ function readJoinHash() {
   try {
     const raw = b64d(m[1]);
     // 링크는 누구나 만들 수 있으므로, 정해진 모양의 값만 받아들입니다
-    const c = { id: raw.id, k: raw.k, s: clean(raw.s), c: clean(raw.c), g: toInt(raw.g, 1, 12, 6), t: sanitizeTopic(raw.t), h: safeId(raw.h) ? raw.h : null };
+    const c = { id: raw.id, k: raw.k, s: clean(raw.s), c: clean(raw.c), g: toInt(raw.g, 1, 12, 6), t: sanitizeTopic(raw.t), h: safeId(raw.h) ? raw.h : null,
+      o: { blindFirst: raw.o?.b === 1, review: raw.o?.r !== 0 } };
     if (!safeId(c.id) || !safeId(c.k) || !c.c) throw new Error('bad');
     return c;
   } catch { toast('학급 링크가 올바르지 않아요. 선생님께 다시 받아 주세요.'); return null; }
@@ -1968,15 +2117,19 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const t = e.target;
   if (t.id === 'test-reason' && ui.testDraft) {
-    ui.testDraft.reason = t.value;
-    const b = $('#test-save');
-    if (b) b.disabled = !(ui.testDraft.actual && t.value.trim().length >= 5);
+    const d = ui.testDraft;
+    d.reason = t.value;
+    const ok = !!(d.actual && t.value.trim().length >= 5);
+    if (P.settings.blindFirst) { const b = $('#test-reveal'); if (b) b.disabled = !(ok && d.result); }
+    else { const b = $('#test-save'); if (b) b.disabled = !ok; }
     return;
   }
   if (t.id === 'th-range') {
     P.kid.threshold = +t.value / 100;
     $('#th-val').textContent = pct(P.kid.threshold);
     $('#kid-sim').innerHTML = kidSimView();
+    const w = $('#th-warn');
+    if (w) w.hidden = P.kid.threshold >= 0.6;
     save();
     return;
   }

@@ -1,7 +1,7 @@
 /* AI 도감 스튜디오 — 오프라인 지원 서비스 워커
    - 앱 파일: 인터넷이 되면 최신 파일을 받고, 안 되면 저장해 둔 파일을 씁니다.
    - AI 라이브러리·모델·글꼴: 한 번 받으면 저장해 두고 계속 씁니다. */
-const VERSION = 'ai-dogam-v2.0.1';
+const VERSION = 'ai-dogam-v2.1.0';
 const MODEL_CACHE = 'ai-dogam-model';
 const SHELL = ['./', './index.html', './app.js', './styles.css', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 const LIBS = [

@@ -403,6 +403,23 @@ th { background: #f4f8f2; font-weight: 700; white-space: nowrap; }
 .steps-list { text-align: left; max-width: 14cm; margin: 0 auto 12pt; font-size: 13pt; }
 .link-text { word-break: break-all; color: var(--ink-2); }
 
+/* v2.1: 가드레일 */
+.guard-note { background: #fff9db; color: #6b4b00; border-radius: 10px; padding: 8px 12px; font-size: .9rem; margin: 8px 0; }
+.guard-note[hidden] { display: none; }
+.pledge { border: 2px solid #ffd43b; }
+.pledge.done { border-color: var(--green); }
+.pledge-list { padding-left: 0; list-style: none; margin: 8px 0 12px; display: grid; gap: 8px; }
+.pledge-list li { background: #fffdf3; border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; }
+.pledge.done .pledge-list li { background: #f7faf6; }
+.pledge-list span { font-size: .9rem; color: var(--ink-2); }
+.pledge-mini { margin: 6px 0; padding-left: 20px; }
+.review { border: 2px solid #ffd43b; }
+.review.ok { border-color: var(--green); background: var(--green-l); }
+.review-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin: 10px 0; }
+.k-safety { background: #fff3bf; color: #6b4b00; border-radius: 14px; padding: 10px 16px; font-size: 1.1rem !important; font-weight: 700; margin: 4px 0; }
+.k-caution { color: var(--ink-2); font-size: 1rem; margin: 0; }
+.test-img .guard-note { margin-top: 10px; }
+
 /* 인쇄 */
 #print-root { display: none; }
 @media print {
